@@ -1,5 +1,6 @@
 package it.uninsubria.vaccinibiologici.rules
 
+import it.uninsubria.vaccinibiologici.data.VaccineCatalog
 import it.uninsubria.vaccinibiologici.model.ClinicalCondition
 import it.uninsubria.vaccinibiologici.model.PatientProfile
 import it.uninsubria.vaccinibiologici.model.RecommendationReport
@@ -7,7 +8,6 @@ import it.uninsubria.vaccinibiologici.model.RecommendationStatus
 import it.uninsubria.vaccinibiologici.model.RecommendationTiming
 import it.uninsubria.vaccinibiologici.model.VaccineDefinition
 import it.uninsubria.vaccinibiologici.model.VaccineRecommendation
-import it.uninsubria.vaccinibiologici.model.VaccineType
 
 class VaccineRecommendationEngine {
 
@@ -44,10 +44,7 @@ class VaccineRecommendationEngine {
         }
 
         return recommendation(
-            id = "influenza_injectable",
-            name = "Antinfluenzale iniettivo",
-            type = VaccineType.INACTIVATED,
-            source = "CDC Adult Immunization Schedule; linee guida nazionali",
+            vaccine = VaccineCatalog.influenzaInjectable,
             status = RecommendationStatus.RECOMMENDED,
             timing = RecommendationTiming.DURING_THERAPY,
             priority = priority,
@@ -60,10 +57,7 @@ class VaccineRecommendationEngine {
         val recommended = profile.age >= 65 || profile.alteredImmunocompetence || profile.hasHighRiskCondition
 
         return recommendation(
-            id = "pneumococcal",
-            name = "Pneumococcico",
-            type = VaccineType.RECOMBINANT,
-            source = "CDC Adult Immunization Schedule; linee guida nazionali",
+            vaccine = VaccineCatalog.pneumococcal,
             status = if (recommended) RecommendationStatus.RECOMMENDED else RecommendationStatus.POSSIBLE,
             timing = RecommendationTiming.DURING_THERAPY,
             priority = if (recommended) 3 else 1,
@@ -78,10 +72,7 @@ class VaccineRecommendationEngine {
 
     private fun covid19(profile: PatientProfile): VaccineRecommendation {
         return recommendation(
-            id = "covid19",
-            name = "COVID-19",
-            type = VaccineType.MRNA,
-            source = "CDC Adult Immunization Schedule",
+            vaccine = VaccineCatalog.covid19,
             status = RecommendationStatus.RECOMMENDED,
             timing = RecommendationTiming.DURING_THERAPY,
             priority = if (profile.alteredImmunocompetence || profile.age >= 65) 3 else 2,
@@ -95,10 +86,7 @@ class VaccineRecommendationEngine {
                 (profile.age >= 50 && (profile.alteredImmunocompetence || profile.hasHighRiskCondition))
 
         return recommendation(
-            id = "rsv",
-            name = "Virus respiratorio sinciziale (RSV)",
-            type = VaccineType.RECOMBINANT,
-            source = "CDC Adult Immunization Schedule",
+            vaccine = VaccineCatalog.rsv,
             status = if (recommended) RecommendationStatus.RECOMMENDED else RecommendationStatus.POSSIBLE,
             timing = if (recommended) RecommendationTiming.DURING_THERAPY else RecommendationTiming.SPECIALIST_EVALUATION,
             priority = if (recommended) 2 else 1,
@@ -115,10 +103,7 @@ class VaccineRecommendationEngine {
         val needsVerification = profile.hasIncompleteOrUnknownHistory
 
         return recommendation(
-            id = "tdap",
-            name = "Difterite-Tetano-Pertosse",
-            type = VaccineType.INACTIVATED,
-            source = "CDC Adult Immunization Schedule; linee guida nazionali",
+            vaccine = VaccineCatalog.tetanusDiphtheriaPertussis,
             status = if (needsVerification) RecommendationStatus.RECOMMENDED else RecommendationStatus.POSSIBLE,
             timing = if (needsVerification) RecommendationTiming.BEFORE_THERAPY else RecommendationTiming.SPECIALIST_EVALUATION,
             priority = if (needsVerification) 2 else 1,
@@ -140,10 +125,7 @@ class VaccineRecommendationEngine {
         val recommended = needsVerification || profile.alteredImmunocompetence
 
         return recommendation(
-            id = "hepatitis_b",
-            name = "Epatite B",
-            type = VaccineType.RECOMBINANT,
-            source = "CDC Adult Immunization Schedule; linee guida nazionali",
+            vaccine = VaccineCatalog.hepatitisB,
             status = if (recommended) RecommendationStatus.RECOMMENDED else RecommendationStatus.POSSIBLE,
             timing = if (recommended) RecommendationTiming.BEFORE_THERAPY else RecommendationTiming.SPECIALIST_EVALUATION,
             priority = if (recommended) 2 else 1,
@@ -160,10 +142,7 @@ class VaccineRecommendationEngine {
         val recommended = profile.age >= 50 || (profile.isAdult && profile.alteredImmunocompetence)
 
         return recommendation(
-            id = "recombinant_zoster",
-            name = "Herpes zoster ricombinante",
-            type = VaccineType.RECOMBINANT,
-            source = "CDC Adult Immunization Schedule; linee guida nazionali",
+            vaccine = VaccineCatalog.recombinantZoster,
             status = if (recommended) RecommendationStatus.RECOMMENDED else RecommendationStatus.POSSIBLE,
             timing = RecommendationTiming.DURING_THERAPY,
             priority = if (recommended) 2 else 1,
@@ -180,10 +159,7 @@ class VaccineRecommendationEngine {
         val recommended = profile.age <= 26
 
         return recommendation(
-            id = "hpv",
-            name = "HPV",
-            type = VaccineType.RECOMBINANT,
-            source = "CDC Adult Immunization Schedule; linee guida nazionali",
+            vaccine = VaccineCatalog.hpv,
             status = if (recommended) RecommendationStatus.RECOMMENDED else RecommendationStatus.POSSIBLE,
             timing = if (recommended) RecommendationTiming.BEFORE_THERAPY else RecommendationTiming.SPECIALIST_EVALUATION,
             priority = if (recommended) 2 else 1,
@@ -200,10 +176,7 @@ class VaccineRecommendationEngine {
         val asplenia = ClinicalCondition.ASPLENIA in profile.conditions
 
         return recommendation(
-            id = "meningococcal",
-            name = "Meningococcico",
-            type = VaccineType.RECOMBINANT,
-            source = "CDC Adult Immunization Schedule; linee guida nazionali",
+            vaccine = VaccineCatalog.meningococcal,
             status = if (asplenia) RecommendationStatus.RECOMMENDED else RecommendationStatus.POSSIBLE,
             timing = if (asplenia) RecommendationTiming.DURING_THERAPY else RecommendationTiming.SPECIALIST_EVALUATION,
             priority = if (asplenia) 3 else 1,
@@ -217,10 +190,7 @@ class VaccineRecommendationEngine {
     }
 
     private fun recommendation(
-        id: String,
-        name: String,
-        type: VaccineType,
-        source: String,
+        vaccine: VaccineDefinition,
         status: RecommendationStatus,
         timing: RecommendationTiming,
         priority: Int,
@@ -228,12 +198,7 @@ class VaccineRecommendationEngine {
         clinicalNote: String
     ): VaccineRecommendation {
         return VaccineRecommendation(
-            vaccine = VaccineDefinition(
-                id = id,
-                name = name,
-                type = type,
-                source = source
-            ),
+            vaccine = vaccine,
             status = status,
             timing = timing,
             priority = priority,
