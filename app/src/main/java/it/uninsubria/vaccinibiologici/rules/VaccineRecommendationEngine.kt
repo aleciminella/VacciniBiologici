@@ -21,7 +21,11 @@ class VaccineRecommendationEngine {
             hepatitisB(profile),
             recombinantZoster(profile),
             hpv(profile),
-            meningococcal(profile)
+            meningococcal(profile),
+            liveMmr(profile),
+            liveVaricella(profile),
+            liveYellowFever(profile),
+            liveNasalInfluenza(profile)
         ).sortedWith(
             compareBy<VaccineRecommendation> { it.status.order }
                 .thenBy { it.timing.order }
@@ -186,6 +190,118 @@ class VaccineRecommendationEngine {
                 "Da valutare secondo età, fattori di rischio e calendario vaccinale."
             },
             clinicalNote = "Verificare copertura MenACWY/MenB secondo centro vaccinale."
+        )
+    }
+
+    private fun liveMmr(profile: PatientProfile): VaccineRecommendation {
+        return liveVaccine(
+            profile = profile,
+            vaccine = VaccineCatalog.liveMmr,
+            defaultReason = "Vaccino vivo attenuato da proporre solo se indicato e non controindicato.",
+            pregnancyReason = "Controindicato in gravidanza.",
+            defaultNote = "Verificare documentazione vaccinale o sierologia prima di proporlo."
+        )
+    }
+
+    private fun liveVaricella(profile: PatientProfile): VaccineRecommendation {
+        return liveVaccine(
+            profile = profile,
+            vaccine = VaccineCatalog.liveVaricella,
+            defaultReason = "Vaccino vivo attenuato utile solo nei soggetti suscettibili.",
+            pregnancyReason = "Controindicato in gravidanza.",
+            defaultNote = "Verificare immunità o documentazione vaccinale prima di proporlo."
+        )
+    }
+
+    private fun liveYellowFever(profile: PatientProfile): VaccineRecommendation {
+        val recommendation = liveVaccine(
+            profile = profile,
+            vaccine = VaccineCatalog.liveYellowFever,
+            defaultReason = "Indicato solo in caso di viaggio o rischio epidemiologico documentato.",
+            pregnancyReason = "In gravidanza richiede valutazione specialistica molto prudente.",
+            defaultNote = "Valutare presso centro vaccinale o medicina dei viaggi prima di procedere."
+        )
+
+        return if (recommendation.status == RecommendationStatus.POSSIBLE) {
+            recommendation.copy(
+                status = RecommendationStatus.POSTPONED,
+                timing = RecommendationTiming.SPECIALIST_EVALUATION,
+                clinicalNote = "Valutare indicazione, rischio di esposizione e controindicazioni presso un centro specialistico."
+            )
+        } else {
+            recommendation
+        }
+    }
+
+    private fun liveNasalInfluenza(profile: PatientProfile): VaccineRecommendation {
+        val pregnant = ClinicalCondition.PREGNANCY in profile.conditions
+        val contraindicated = profile.alteredImmunocompetence || pregnant
+
+        return recommendation(
+            vaccine = VaccineCatalog.liveNasalInfluenza,
+            status = if (contraindicated) RecommendationStatus.CONTRAINDICATED else RecommendationStatus.POSTPONED,
+            timing = if (contraindicated) {
+                RecommendationTiming.AVOID_DURING_IMMUNOSUPPRESSION
+            } else {
+                RecommendationTiming.SPECIALIST_EVALUATION
+            },
+            priority = 3,
+            reason = if (contraindicated) {
+                "I vaccini vivi attenuati sono da evitare in immunosoppressione e gravidanza."
+            } else {
+                "Non è la formulazione preferibile in un percorso clinico fragile."
+            },
+            clinicalNote = "Preferire il vaccino antinfluenzale iniettivo inattivato."
+        )
+    }
+
+    private fun liveVaccine(
+        profile: PatientProfile,
+        vaccine: VaccineDefinition,
+        defaultReason: String,
+        pregnancyReason: String,
+        defaultNote: String
+    ): VaccineRecommendation {
+        val pregnant = ClinicalCondition.PREGNANCY in profile.conditions
+        val plannedTherapy = ClinicalCondition.PLANNED_THERAPY_START in profile.conditions
+        val liveContraindicated = profile.alteredImmunocompetence || pregnant
+
+        val status = when {
+            liveContraindicated -> RecommendationStatus.CONTRAINDICATED
+            plannedTherapy && profile.hasIncompleteOrUnknownHistory -> RecommendationStatus.POSTPONED
+            profile.hasIncompleteOrUnknownHistory -> RecommendationStatus.POSSIBLE
+            else -> RecommendationStatus.POSSIBLE
+        }
+
+        val timing = when {
+            liveContraindicated -> RecommendationTiming.AVOID_DURING_IMMUNOSUPPRESSION
+            plannedTherapy && profile.hasIncompleteOrUnknownHistory -> RecommendationTiming.BEFORE_THERAPY
+            else -> RecommendationTiming.SPECIALIST_EVALUATION
+        }
+
+        val reason = when {
+            profile.alteredImmunocompetence -> "Vaccino vivo attenuato controindicato durante immunosoppressione o terapia biologica in corso."
+            pregnant -> pregnancyReason
+            plannedTherapy && profile.hasIncompleteOrUnknownHistory ->
+                "Storia vaccinale non documentata: verificare immunità prima dell'inizio della terapia biologica."
+            profile.hasIncompleteOrUnknownHistory ->
+                "Storia vaccinale incompleta o non documentata: verificare immunità prima di decidere la somministrazione."
+            else -> defaultReason
+        }
+
+        val clinicalNote = when {
+            status == RecommendationStatus.CONTRAINDICATED -> "Non somministrare senza rivalutazione specialistica."
+            status == RecommendationStatus.POSTPONED -> "Verificare documentazione o sierologia e completare prima dell'immunosoppressione solo se necessario."
+            else -> defaultNote
+        }
+
+        return recommendation(
+            vaccine = vaccine,
+            status = status,
+            timing = timing,
+            priority = if (status == RecommendationStatus.CONTRAINDICATED) 3 else 1,
+            reason = reason,
+            clinicalNote = clinicalNote
         )
     }
 
