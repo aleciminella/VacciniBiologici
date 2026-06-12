@@ -67,6 +67,34 @@ object VaccineCatalog {
         source = "CDC Adult Immunization Schedule; linee guida nazionali"
     )
 
+    val liveMmr = VaccineDefinition(
+        id = "live_mmr",
+        name = "Morbillo-Parotite-Rosolia (MPR)",
+        type = VaccineType.LIVE_ATTENUATED,
+        source = "EULAR; CDC Adult Immunization Schedule"
+    )
+
+    val liveVaricella = VaccineDefinition(
+        id = "live_varicella",
+        name = "Varicella",
+        type = VaccineType.LIVE_ATTENUATED,
+        source = "EULAR; CDC Adult Immunization Schedule"
+    )
+
+    val liveYellowFever = VaccineDefinition(
+        id = "live_yellow_fever",
+        name = "Febbre gialla",
+        type = VaccineType.LIVE_ATTENUATED,
+        source = "EULAR; CDC Adult Immunization Schedule; medicina dei viaggi"
+    )
+
+    val liveNasalInfluenza = VaccineDefinition(
+        id = "live_nasal_influenza",
+        name = "Antinfluenzale vivo attenuato nasale",
+        type = VaccineType.LIVE_ATTENUATED,
+        source = "CDC Adult Immunization Schedule; EULAR"
+    )
+
     val all = listOf(
         influenzaInjectable,
         pneumococcal,
@@ -76,6 +104,10 @@ object VaccineCatalog {
         hepatitisB,
         recombinantZoster,
         hpv,
-        meningococcal
+        meningococcal,
+        liveMmr,
+        liveVaricella,
+        liveYellowFever,
+        liveNasalInfluenza
     )
 }
