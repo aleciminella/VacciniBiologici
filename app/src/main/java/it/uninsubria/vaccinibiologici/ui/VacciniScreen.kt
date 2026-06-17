@@ -42,6 +42,7 @@ import it.uninsubria.vaccinibiologici.model.RecommendationReport
 import it.uninsubria.vaccinibiologici.model.RecommendationStatus
 import it.uninsubria.vaccinibiologici.model.RecommendationTiming
 import it.uninsubria.vaccinibiologici.model.VaccinationHistory
+import it.uninsubria.vaccinibiologici.model.VaccineRecommendation
 import it.uninsubria.vaccinibiologici.rules.ClinicalInputValidator
 import it.uninsubria.vaccinibiologici.rules.VaccineRecommendationEngine
 
@@ -236,6 +237,64 @@ private fun ResultPreview(report: RecommendationReport?) {
                 }
             }
         }
+
+        RecommendationPreviewList(report)
+    }
+}
+
+@Composable
+private fun RecommendationPreviewList(report: RecommendationReport) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Anteprima raccomandazioni", fontWeight = FontWeight.Bold)
+        report.recommendations.take(6).forEach { recommendation ->
+            RecommendationPreviewCard(recommendation)
+        }
+        if (report.recommendations.size > 6) {
+            HelperText("Sono disponibili altre raccomandazioni. La visualizzazione completa sarà rifinita nei prossimi moduli.")
+        }
+    }
+}
+
+@Composable
+private fun RecommendationPreviewCard(item: VaccineRecommendation) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, Color(0xFFD8E1DE)),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = item.vaccine.name,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = item.status.label,
+                    color = statusColor(item.status),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Text(
+                text = "${item.vaccine.type.label} - priorità ${item.priority}/3",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                text = item.timing.label,
+                color = Color(0xFF40534C),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(item.clinicalNote, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
 
@@ -310,5 +369,14 @@ private fun SummaryRow(label: String, value: String) {
     Column {
         Text(label, color = Color(0xFF60706C), style = MaterialTheme.typography.labelMedium)
         Text(value, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+private fun statusColor(status: RecommendationStatus): Color {
+    return when (status) {
+        RecommendationStatus.RECOMMENDED -> Color(0xFF2E7D4F)
+        RecommendationStatus.POSSIBLE -> Color(0xFF336D8C)
+        RecommendationStatus.POSTPONED -> Color(0xFF9A6A19)
+        RecommendationStatus.CONTRAINDICATED -> Color(0xFFA33A2A)
     }
 }
