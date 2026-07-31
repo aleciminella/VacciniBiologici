@@ -205,7 +205,7 @@ private fun ResultPreview(report: RecommendationReport?) {
         if (report == null) {
             ClinicalPanel {
                 Text("Inserisci i dati del paziente e avvia il calcolo.")
-                HelperText("I risultati dettagliati e il salvataggio degli scenari verranno completati nei prossimi moduli.")
+                HelperText("Il risultato organizza le raccomandazioni per momento clinico rispetto alla terapia biologica.")
             }
             return
         }
@@ -218,54 +218,99 @@ private fun ResultPreview(report: RecommendationReport?) {
             SummaryRow("Documentazione vaccinale", report.profile.vaccinationHistory.label)
         }
 
-        ClinicalPanel {
-            Text("Stati raccomandazione", fontWeight = FontWeight.Bold)
-            RecommendationStatus.entries.forEach { status ->
-                val count = report.recommendations.count { it.status == status }
-                if (count > 0) {
-                    SummaryRow(status.label, count.toString())
-                }
-            }
-        }
-
-        ClinicalPanel {
-            Text("Momento clinico", fontWeight = FontWeight.Bold)
-            RecommendationTiming.entries.forEach { timing ->
-                val count = report.recommendations.count { it.timing == timing }
-                if (count > 0) {
-                    SummaryRow(timing.label, count.toString())
-                }
-            }
-        }
-
-        RecommendationPreviewList(report)
+        RecommendationCounters(report)
+        TimingPlan(report)
+        RecommendationTimeline(report)
     }
 }
 
 @Composable
-private fun RecommendationPreviewList(report: RecommendationReport) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Anteprima raccomandazioni", fontWeight = FontWeight.Bold)
-        report.recommendations.take(6).forEach { recommendation ->
-            RecommendationPreviewCard(recommendation)
-        }
-        if (report.recommendations.size > 6) {
-            HelperText("Sono disponibili altre raccomandazioni. La visualizzazione completa sarà rifinita nei prossimi moduli.")
+private fun RecommendationCounters(report: RecommendationReport) {
+    ClinicalPanel {
+        Text("Sintesi raccomandazioni", fontWeight = FontWeight.Bold)
+        RecommendationStatus.entries.forEach { status ->
+            val count = report.recommendations.count { it.status == status }
+            if (count > 0) {
+                SummaryRow(status.label, "$count vaccini")
+            }
         }
     }
 }
 
 @Composable
-private fun RecommendationPreviewCard(item: VaccineRecommendation) {
+private fun TimingPlan(report: RecommendationReport) {
+    ClinicalPanel {
+        Text("Piano vaccinale temporale", fontWeight = FontWeight.Bold)
+        HelperText("Le raccomandazioni sono divise in base al momento piu' adatto rispetto all'inizio o alla prosecuzione della terapia biologica.")
+        RecommendationTiming.entries.forEach { timing ->
+            val count = report.recommendations.count { it.timing == timing }
+            if (count > 0) {
+                SummaryRow(timing.label, "$count vaccini")
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecommendationTimeline(report: RecommendationReport) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Dettaglio per momento clinico", fontWeight = FontWeight.Bold)
+        RecommendationTiming.entries.forEach { timing ->
+            val items = report.recommendations
+                .filter { it.timing == timing }
+                .sortedWith(
+                    compareBy<VaccineRecommendation> { it.status.order }
+                        .thenByDescending { it.priority }
+                        .thenBy { it.vaccine.name }
+                )
+
+            if (items.isNotEmpty()) {
+                TimingSection(timing = timing, recommendations = items)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimingSection(
+    timing: RecommendationTiming,
+    recommendations: List<VaccineRecommendation>
+) {
+    ClinicalPanel {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = timing.label,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "${recommendations.size}",
+                color = timingColor(timing),
+                fontWeight = FontWeight.Bold
+            )
+        }
+        HelperText(timingDescription(timing))
+        recommendations.forEach { recommendation ->
+            RecommendationCard(recommendation)
+        }
+    }
+}
+
+@Composable
+private fun RecommendationCard(item: VaccineRecommendation) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, Color(0xFFD8E1DE)),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFBFDFC))
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -277,24 +322,52 @@ private fun RecommendationPreviewCard(item: VaccineRecommendation) {
                     text = item.vaccine.name,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = item.status.label,
-                    color = statusColor(item.status),
-                    fontWeight = FontWeight.Bold
-                )
+                RecommendationBadge(item.status)
             }
-            Text(
-                text = "${item.vaccine.type.label} - priorità ${item.priority}/3",
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                text = item.timing.label,
-                color = Color(0xFF40534C),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(item.clinicalNote, style = MaterialTheme.typography.bodySmall)
+            SummaryRow("Tipo", item.vaccine.type.label)
+            SummaryRow("Priorità", "${item.priority}/3")
+            SummaryRow("Motivazione", item.reason)
+            SummaryRow("Nota clinica", item.clinicalNote)
+            SummaryRow("Fonte", item.vaccine.source)
         }
+    }
+}
+
+@Composable
+private fun RecommendationBadge(status: RecommendationStatus) {
+    Surface(
+        color = statusColor(status),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            text = status.label,
+            color = Color.White,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+private fun timingDescription(timing: RecommendationTiming): String {
+    return when (timing) {
+        RecommendationTiming.BEFORE_THERAPY ->
+            "Da considerare prima di iniziare la terapia, soprattutto quando servono cicli o richiami da completare."
+        RecommendationTiming.DURING_THERAPY ->
+            "Generalmente utilizzabile anche durante la terapia, con verifica del calendario vaccinale."
+        RecommendationTiming.SPECIALIST_EVALUATION ->
+            "Richiede valutazione individuale in base a rischio, anamnesi e indicazioni aggiornate."
+        RecommendationTiming.AVOID_DURING_IMMUNOSUPPRESSION ->
+            "Da evitare o rimandare durante immunosoppressione, in particolare per vaccini vivi attenuati."
+    }
+}
+
+private fun timingColor(timing: RecommendationTiming): Color {
+    return when (timing) {
+        RecommendationTiming.BEFORE_THERAPY -> Color(0xFF2A6F97)
+        RecommendationTiming.DURING_THERAPY -> Color(0xFF2E7D4F)
+        RecommendationTiming.SPECIALIST_EVALUATION -> Color(0xFF8A6418)
+        RecommendationTiming.AVOID_DURING_IMMUNOSUPPRESSION -> Color(0xFFA33A2A)
     }
 }
 
