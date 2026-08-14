@@ -289,28 +289,6 @@ private fun ResultPreview(
     }
 }
 
-        ClinicalPanel {
-            Text(report.summary, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(4.dp))
-            SummaryRow("Terapia", report.profile.therapy.label)
-            SummaryRow("Età", "${report.profile.age} anni")
-            SummaryRow("Documentazione vaccinale", report.profile.vaccinationHistory.label)
-        }
-
-        RecommendationCounters(report)
-        TimingPlan(report)
-        RecommendationTimeline(report)
-    ScenarioSavePanel(
-        report = report,
-        scenarioTitle = scenarioTitle,
-        onScenarioTitleChange = onScenarioTitleChange,
-        saveMessage = saveMessage,
-        canSaveScenario = canSaveScenario,
-        onSaveScenario = onSaveScenario
-    )
-    }
-}
-
 @Composable
 private fun RecommendationCounters(report: RecommendationReport) {
     ClinicalPanel {
