@@ -45,11 +45,17 @@ import it.uninsubria.vaccinibiologici.model.VaccinationHistory
 import it.uninsubria.vaccinibiologici.model.VaccineRecommendation
 import it.uninsubria.vaccinibiologici.rules.ClinicalInputValidator
 import it.uninsubria.vaccinibiologici.rules.VaccineRecommendationEngine
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import it.uninsubria.vaccinibiologici.data.ClinicalScenarioRepository
+import it.uninsubria.vaccinibiologici.model.ClinicalScenario
+import kotlinx.coroutines.launch
 
 @Composable
 fun VacciniScreen(
     modifier: Modifier = Modifier,
-    recommendationEngine: VaccineRecommendationEngine = remember { VaccineRecommendationEngine() }
+    recommendationEngine: VaccineRecommendationEngine = remember { VaccineRecommendationEngine() },
+    scenarioRepository: ClinicalScenarioRepository? = null
 ) {
     var selectedTherapy by remember { mutableStateOf(BiologicalTherapy.ANTI_TNF) }
     var selectedHistory by remember { mutableStateOf(VaccinationHistory.UNKNOWN) }
@@ -57,7 +63,16 @@ fun VacciniScreen(
     var selectedConditions by remember { mutableStateOf(emptySet<ClinicalCondition>()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var report by remember { mutableStateOf<RecommendationReport?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+    var scenarioTitle by remember { mutableStateOf("") }
+    var savedScenarios by remember { mutableStateOf(emptyList<ClinicalScenario>()) }
+    var saveMessage by remember { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(scenarioRepository) {
+        if (scenarioRepository != null) {
+            savedScenarios = scenarioRepository.findAll()
+        }
+    }
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -120,7 +135,41 @@ fun VacciniScreen(
                 Text(it, color = MaterialTheme.colorScheme.error)
             }
 
-            ResultPreview(report)
+            ResultPreview(
+                report = report,
+                scenarioTitle = scenarioTitle,
+                onScenarioTitleChange = { scenarioTitle = it },
+                saveMessage = saveMessage,
+                canSaveScenario = scenarioRepository != null,
+                onSaveScenario = { currentReport ->
+                    if (scenarioRepository != null) {
+                        coroutineScope.launch {
+                            val scenario = ClinicalScenario(
+                                title = scenarioTitle,
+                                profile = currentReport.profile,
+                                report = currentReport
+                            )
+                            scenarioRepository.save(scenario)
+                            savedScenarios = scenarioRepository.findAll()
+                            scenarioTitle = ""
+                            saveMessage = "Scenario salvato correttamente."
+                        }
+                    }
+                }
+            )
+
+            if (scenarioRepository != null) {
+                SavedScenariosSection(
+                    scenarios = savedScenarios,
+                    onDeleteScenario = { scenario ->
+                        coroutineScope.launch {
+                            scenarioRepository.deleteById(scenario.id)
+                            savedScenarios = scenarioRepository.findAll()
+                            saveMessage = "Scenario eliminato."
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -198,7 +247,14 @@ private fun ClinicalForm(
 }
 
 @Composable
-private fun ResultPreview(report: RecommendationReport?) {
+private fun ResultPreview(
+    report: RecommendationReport?,
+    scenarioTitle: String,
+    onScenarioTitleChange: (String) -> Unit,
+    saveMessage: String?,
+    canSaveScenario: Boolean,
+    onSaveScenario: (RecommendationReport) -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Risultato", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 
@@ -221,6 +277,15 @@ private fun ResultPreview(report: RecommendationReport?) {
         RecommendationCounters(report)
         TimingPlan(report)
         RecommendationTimeline(report)
+
+        ScenarioSavePanel(
+            report = report,
+            scenarioTitle = scenarioTitle,
+            onScenarioTitleChange = onScenarioTitleChange,
+            saveMessage = saveMessage,
+            canSaveScenario = canSaveScenario,
+            onSaveScenario = onSaveScenario
+        )
     }
 }
 
@@ -268,6 +333,94 @@ private fun RecommendationTimeline(report: RecommendationReport) {
                 TimingSection(timing = timing, recommendations = items)
             }
         }
+    }
+}
+@Composable
+private fun ScenarioSavePanel(
+    report: RecommendationReport,
+    scenarioTitle: String,
+    onScenarioTitleChange: (String) -> Unit,
+    saveMessage: String?,
+    canSaveScenario: Boolean,
+    onSaveScenario: (RecommendationReport) -> Unit
+) {
+    ClinicalPanel {
+        Text("Salva scenario clinico", fontWeight = FontWeight.Bold)
+        HelperText("Gli scenari sono anonimi e servono solo per confrontare casi didattici simulati.")
+
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = scenarioTitle,
+            onValueChange = onScenarioTitleChange,
+            singleLine = true,
+            label = { Text("Titolo scenario") }
+        )
+
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            enabled = canSaveScenario,
+            onClick = { onSaveScenario(report) }
+        ) {
+            Text("Salva scenario")
+        }
+
+        saveMessage?.let {
+            HelperText(it)
+        }
+    }
+}
+
+@Composable
+private fun SavedScenariosSection(
+    scenarios: List<ClinicalScenario>,
+    onDeleteScenario: (ClinicalScenario) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("Scenari salvati", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
+        if (scenarios.isEmpty()) {
+            ClinicalPanel {
+                Text("Nessuno scenario salvato.")
+                HelperText("Dopo il calcolo puoi salvare casi anonimi per rivederli durante la discussione del progetto.")
+            }
+            return
+        }
+
+        scenarios.forEach { scenario ->
+            SavedScenarioCard(
+                scenario = scenario,
+                onDeleteScenario = onDeleteScenario
+            )
+        }
+    }
+}
+
+@Composable
+private fun SavedScenarioCard(
+    scenario: ClinicalScenario,
+    onDeleteScenario: (ClinicalScenario) -> Unit
+) {
+    ClinicalPanel {
+        Text(scenario.displayTitle, fontWeight = FontWeight.Bold)
+        SummaryRow("Terapia", scenario.profile.therapy.label)
+        SummaryRow("Età", "${scenario.profile.age} anni")
+        SummaryRow("Documentazione vaccinale", scenario.profile.vaccinationHistory.label)
+        SummaryRow("Condizioni", formatConditions(scenario.profile.conditions))
+
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { onDeleteScenario(scenario) }
+        ) {
+            Text("Elimina scenario")
+        }
+    }
+}
+
+private fun formatConditions(conditions: Set<ClinicalCondition>): String {
+    return if (conditions.isEmpty()) {
+        "Nessuna condizione selezionata"
+    } else {
+        conditions.joinToString { it.label }
     }
 }
 
