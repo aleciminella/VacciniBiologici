@@ -80,7 +80,11 @@ fun VacciniScreen(
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .padding(
+                    start = 20.dp,
+                    top = 60.dp,
+                    end = 20.dp,
+                    bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Header()
