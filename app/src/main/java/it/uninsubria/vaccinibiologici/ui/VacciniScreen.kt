@@ -49,6 +49,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import it.uninsubria.vaccinibiologici.data.ClinicalScenarioRepository
 import it.uninsubria.vaccinibiologici.model.ClinicalScenario
+import it.uninsubria.vaccinibiologici.ui.theme.ClinicalBorder
+import it.uninsubria.vaccinibiologici.ui.theme.ClinicalCardBackground
+import it.uninsubria.vaccinibiologici.ui.theme.ClinicalMutedText
+import it.uninsubria.vaccinibiologici.ui.theme.ClinicalOnStatus
+import it.uninsubria.vaccinibiologici.ui.theme.StatusContraindicated
+import it.uninsubria.vaccinibiologici.ui.theme.StatusPossible
+import it.uninsubria.vaccinibiologici.ui.theme.StatusPostponed
+import it.uninsubria.vaccinibiologici.ui.theme.StatusRecommended
+import it.uninsubria.vaccinibiologici.ui.theme.TimingAvoidImmunosuppression
+import it.uninsubria.vaccinibiologici.ui.theme.TimingBeforeTherapy
+import it.uninsubria.vaccinibiologici.ui.theme.TimingDuringTherapy
+import it.uninsubria.vaccinibiologici.ui.theme.TimingSpecialistEvaluation
 import kotlinx.coroutines.launch
 
 @Composable
@@ -462,8 +474,8 @@ private fun RecommendationCard(item: VaccineRecommendation) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, Color(0xFFD8E1DE)),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFBFDFC))
+        border = BorderStroke(1.dp, ClinicalBorder),
+        colors = CardDefaults.cardColors(containerColor = ClinicalCardBackground)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -499,7 +511,7 @@ private fun RecommendationBadge(status: RecommendationStatus) {
         Text(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             text = status.label,
-            color = Color.White,
+            color = ClinicalOnStatus,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold
         )
@@ -521,10 +533,10 @@ private fun timingDescription(timing: RecommendationTiming): String {
 
 private fun timingColor(timing: RecommendationTiming): Color {
     return when (timing) {
-        RecommendationTiming.BEFORE_THERAPY -> Color(0xFF2A6F97)
-        RecommendationTiming.DURING_THERAPY -> Color(0xFF2E7D4F)
-        RecommendationTiming.SPECIALIST_EVALUATION -> Color(0xFF8A6418)
-        RecommendationTiming.AVOID_DURING_IMMUNOSUPPRESSION -> Color(0xFFA33A2A)
+        RecommendationTiming.BEFORE_THERAPY -> TimingBeforeTherapy
+        RecommendationTiming.DURING_THERAPY -> TimingDuringTherapy
+        RecommendationTiming.SPECIALIST_EVALUATION -> TimingSpecialistEvaluation
+        RecommendationTiming.AVOID_DURING_IMMUNOSUPPRESSION -> TimingAvoidImmunosuppression
     }
 }
 
@@ -533,8 +545,8 @@ private fun ClinicalPanel(content: @Composable () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, Color(0xFFD8E1DE)),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        border = BorderStroke(1.dp, ClinicalBorder),
+        colors = CardDefaults.cardColors(containerColor = ClinicalOnStatus)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -591,22 +603,22 @@ private fun FieldLabel(text: String) {
 
 @Composable
 private fun HelperText(text: String) {
-    Text(text, color = Color(0xFF60706C), style = MaterialTheme.typography.bodySmall)
+    Text(text, color = ClinicalMutedText, style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable
 private fun SummaryRow(label: String, value: String) {
     Column {
-        Text(label, color = Color(0xFF60706C), style = MaterialTheme.typography.labelMedium)
+        Text(label, color = ClinicalMutedText, style = MaterialTheme.typography.labelMedium)
         Text(value, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
 private fun statusColor(status: RecommendationStatus): Color {
     return when (status) {
-        RecommendationStatus.RECOMMENDED -> Color(0xFF2E7D4F)
-        RecommendationStatus.POSSIBLE -> Color(0xFF336D8C)
-        RecommendationStatus.POSTPONED -> Color(0xFF9A6A19)
-        RecommendationStatus.CONTRAINDICATED -> Color(0xFFA33A2A)
+        RecommendationStatus.RECOMMENDED -> StatusRecommended
+        RecommendationStatus.POSSIBLE -> StatusPossible
+        RecommendationStatus.POSTPONED -> StatusPostponed
+        RecommendationStatus.CONTRAINDICATED -> StatusContraindicated
     }
 }
