@@ -4,7 +4,7 @@ import it.uninsubria.vaccinibiologici.model.BiologicalTherapy
 import it.uninsubria.vaccinibiologici.model.ClinicalCondition
 import it.uninsubria.vaccinibiologici.model.PatientProfile
 
-object ClinicalInputValidator {
+object ClinicalInputValidator { // Controllo degli errori
     fun validateAge(rawAge: String): Result<Int> {
         val age = rawAge.trim().toIntOrNull()
             ?: return Result.failure(IllegalArgumentException("Inserisci un'età numerica."))

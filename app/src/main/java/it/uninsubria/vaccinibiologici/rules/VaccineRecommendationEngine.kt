@@ -9,7 +9,7 @@ import it.uninsubria.vaccinibiologici.model.RecommendationTiming
 import it.uninsubria.vaccinibiologici.model.VaccineDefinition
 import it.uninsubria.vaccinibiologici.model.VaccineRecommendation
 
-class VaccineRecommendationEngine {
+class VaccineRecommendationEngine { // serve per logica decisionale
 
     fun evaluate(profile: PatientProfile): RecommendationReport {
         val recommendations = listOf(

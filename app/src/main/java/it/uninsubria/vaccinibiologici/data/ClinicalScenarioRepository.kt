@@ -2,10 +2,8 @@ package it.uninsubria.vaccinibiologici.data
 
 import it.uninsubria.vaccinibiologici.model.ClinicalScenario
 
-interface ClinicalScenarioRepository {
+interface ClinicalScenarioRepository { // Definisce quali operazioni si possono fare con gli scenari salvati
     suspend fun findAll(): List<ClinicalScenario>
-
-    suspend fun findById(id: Long): ClinicalScenario?
 
     suspend fun save(scenario: ClinicalScenario): Long
 
