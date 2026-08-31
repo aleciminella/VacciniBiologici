@@ -16,10 +16,9 @@ data class SavedScenarioEntity(
     val age: Int,
     val vaccinationHistory: String,
     val conditions: String,
-    val reportSummary: String?,
     val createdAtMillis: Long
 ) {
-    fun toScenario(): ClinicalScenario {
+    fun toScenario(): ClinicalScenario { // Traduttore verso l'app
         return ClinicalScenario(
             id = id,
             title = title,
@@ -27,7 +26,7 @@ data class SavedScenarioEntity(
                 therapy = BiologicalTherapy.valueOf(therapy),
                 age = age,
                 vaccinationHistory = VaccinationHistory.valueOf(vaccinationHistory),
-                conditions = conditions.toConditionSet()
+                conditions = conditions.toConditionSet() // funzione inversa di joinToString
             ),
             report = null,
             createdAtMillis = createdAtMillis
@@ -35,15 +34,14 @@ data class SavedScenarioEntity(
     }
 
     companion object {
-        fun fromScenario(scenario: ClinicalScenario): SavedScenarioEntity {
+        fun fromScenario(scenario: ClinicalScenario): SavedScenarioEntity { // Traduttore verso il database
             return SavedScenarioEntity(
                 id = scenario.id,
                 title = scenario.title,
                 therapy = scenario.profile.therapy.name,
                 age = scenario.profile.age,
                 vaccinationHistory = scenario.profile.vaccinationHistory.name,
-                conditions = scenario.profile.conditions.joinToString("|") { it.name },
-                reportSummary = scenario.report?.summary,
+                conditions = scenario.profile.conditions.joinToString("|") { it.name }, // Prende l’elenco delle patologie e le incolla in una sola stringa separata dal simbolo pipe. In questo modo Room può salvarle in una singola cella di testo
                 createdAtMillis = scenario.createdAtMillis
             )
         }

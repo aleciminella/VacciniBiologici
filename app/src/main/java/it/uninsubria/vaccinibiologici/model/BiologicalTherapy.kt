@@ -1,6 +1,6 @@
 package it.uninsubria.vaccinibiologici.model
 
-enum class BiologicalTherapy(
+enum class BiologicalTherapy( // Elenca le categorie di farmaci biologici usate
     val label: String,
     val description: String
 ) {

@@ -1,6 +1,6 @@
 package it.uninsubria.vaccinibiologici.model
 
-data class VaccineRecommendation(
+data class VaccineRecommendation( // L'esito della valutazione clinica per un singolo vaccino.
     val vaccine: VaccineDefinition,
     val status: RecommendationStatus,
     val timing: RecommendationTiming,

@@ -3,7 +3,7 @@ package it.uninsubria.vaccinibiologici.data
 import it.uninsubria.vaccinibiologici.model.VaccineDefinition
 import it.uninsubria.vaccinibiologici.model.VaccineType
 
-object VaccineCatalog {
+object VaccineCatalog { // Contiene la lista reale e completa di tutti i vaccini gestiti con le relative fonti scientifiche ufficiali (EULAR, CDC)
     val influenzaInjectable = VaccineDefinition(
         id = "influenza_injectable",
         name = "Antinfluenzale iniettivo",

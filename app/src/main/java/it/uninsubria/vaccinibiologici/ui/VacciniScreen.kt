@@ -68,19 +68,19 @@ fun VacciniScreen(
     modifier: Modifier = Modifier,
     recommendationEngine: VaccineRecommendationEngine = remember { VaccineRecommendationEngine() },
     scenarioRepository: ClinicalScenarioRepository? = null
-) {
+) { // vengono memorizzati i dati inseriti, risultati e scenari salvati
     var selectedTherapy by remember { mutableStateOf(BiologicalTherapy.ANTI_TNF) }
     var selectedHistory by remember { mutableStateOf(VaccinationHistory.UNKNOWN) }
     var ageText by remember { mutableStateOf("") }
-    var selectedConditions by remember { mutableStateOf(emptySet<ClinicalCondition>()) }
+    var selectedConditions by remember { mutableStateOf(emptySet<ClinicalCondition>()) } // lista che non permette duplicati inizialmente vuota
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var report by remember { mutableStateOf<RecommendationReport?>(null) }
-    val coroutineScope = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope() //  Serve per lanciare operazioni "pesanti" (come salvare o eliminare dal database) senza bloccare l'interfaccia grafica.
     var scenarioTitle by remember { mutableStateOf("") }
     var savedScenarios by remember { mutableStateOf(emptyList<ClinicalScenario>()) }
     var saveMessage by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(scenarioRepository) {
+    LaunchedEffect(scenarioRepository) { // Appena avviata l'app vengono presi tutti gli scenari salvati nel database (findAll) e messi nella variabile savedScenarios
         if (scenarioRepository != null) {
             savedScenarios = scenarioRepository.findAll()
         }
@@ -105,7 +105,7 @@ fun VacciniScreen(
                 selectedHistory = selectedHistory,
                 ageText = ageText,
                 selectedConditions = selectedConditions,
-                onTherapyChange = { selectedTherapy = it },
+                onTherapyChange = { selectedTherapy = it }, // se viene cambiata terapia viene messa in selectedTherapy
                 onHistoryChange = { selectedHistory = it },
                 onAgeChange = { ageText = it.filter(Char::isDigit) },
                 onConditionChange = { condition, checked ->
@@ -116,7 +116,7 @@ fun VacciniScreen(
                     }
                 }
             )
-            Button(
+            Button( // vengono inoltrati i dati all'InputValidator, solo se vengono validati il profilo viene inoltrato al motore di calcolo che restituisce il report
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
@@ -147,7 +147,7 @@ fun VacciniScreen(
                 Text("Calcola raccomandazioni")
             }
 
-            errorMessage?.let {
+            errorMessage?.let { // prende l'eventuale errore e lo scrive in rosso sotto il pulsante
                 Text(it, color = MaterialTheme.colorScheme.error)
             }
 
@@ -177,6 +177,17 @@ fun VacciniScreen(
             if (scenarioRepository != null) {
                 SavedScenariosSection(
                     scenarios = savedScenarios,
+                    onRecalculateScenario = { scenario ->
+                        val profile = scenario.profile
+                        selectedTherapy = profile.therapy
+                        selectedHistory = profile.vaccinationHistory
+                        ageText = profile.age.toString()
+                        selectedConditions = profile.conditions
+                        errorMessage = null
+                        report = recommendationEngine.evaluate(profile)
+                        scenarioTitle = scenario.title
+                        saveMessage = "Scenario ricalcolato."
+                    },
                     onDeleteScenario = { scenario ->
                         coroutineScope.launch {
                             scenarioRepository.deleteById(scenario.id)
@@ -207,11 +218,12 @@ private fun Header() {
 
 @Composable
 private fun ClinicalForm(
+    // Parametri che permettono al modulo di essere sincronizzato con lo stato principale della schermata
     selectedTherapy: BiologicalTherapy,
     selectedHistory: VaccinationHistory,
     ageText: String,
     selectedConditions: Set<ClinicalCondition>,
-    onTherapyChange: (BiologicalTherapy) -> Unit,
+    onTherapyChange: (BiologicalTherapy) -> Unit, // Questo modulo avrà un'azione che, quando attivata, trasporterà una Terapia (BiologicalTherapy) verso l'esterno
     onHistoryChange: (VaccinationHistory) -> Unit,
     onAgeChange: (String) -> Unit,
     onConditionChange: (ClinicalCondition, Boolean) -> Unit
@@ -222,11 +234,11 @@ private fun ClinicalForm(
         FieldLabel("Terapia biologica")
         EnumDropdown(
             value = selectedTherapy,
-            values = BiologicalTherapy.entries,
+            values = BiologicalTherapy.entries, // mostra opzioni enum
             label = { it.label },
             onChange = onTherapyChange
         )
-        HelperText(selectedTherapy.description)
+        HelperText(selectedTherapy.description) // testo descrizione dinamico della terapia selezionata
 
         FieldLabel("Età")
         OutlinedTextField(
@@ -253,7 +265,7 @@ private fun ClinicalForm(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
-                    checked = condition in selectedConditions,
+                    checked = condition in selectedConditions, // se presente mette la spunta
                     onCheckedChange = { onConditionChange(condition, it) }
                 )
                 Text(condition.label, style = MaterialTheme.typography.bodyMedium)
@@ -389,6 +401,7 @@ private fun ScenarioSavePanel(
 @Composable
 private fun SavedScenariosSection(
     scenarios: List<ClinicalScenario>,
+    onRecalculateScenario: (ClinicalScenario) -> Unit,
     onDeleteScenario: (ClinicalScenario) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -405,6 +418,7 @@ private fun SavedScenariosSection(
         scenarios.forEach { scenario ->
             SavedScenarioCard(
                 scenario = scenario,
+                onRecalculateScenario = onRecalculateScenario,
                 onDeleteScenario = onDeleteScenario
             )
         }
@@ -414,6 +428,7 @@ private fun SavedScenariosSection(
 @Composable
 private fun SavedScenarioCard(
     scenario: ClinicalScenario,
+    onRecalculateScenario: (ClinicalScenario) -> Unit,
     onDeleteScenario: (ClinicalScenario) -> Unit
 ) {
     ClinicalPanel {
@@ -422,6 +437,13 @@ private fun SavedScenarioCard(
         SummaryRow("Età", "${scenario.profile.age} anni")
         SummaryRow("Documentazione vaccinale", scenario.profile.vaccinationHistory.label)
         SummaryRow("Condizioni", formatConditions(scenario.profile.conditions))
+
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { onRecalculateScenario(scenario) }
+        ) {
+            Text("Ricalcola scenario")
+        }
 
         OutlinedButton(
             modifier = Modifier.fillMaxWidth(),

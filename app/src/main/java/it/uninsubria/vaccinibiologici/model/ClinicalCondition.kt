@@ -1,6 +1,6 @@
 package it.uninsubria.vaccinibiologici.model
 
-enum class ClinicalCondition(val label: String) {
+enum class ClinicalCondition(val label: String) { // Elenca le malattie o condizioni cliniche rilevanti
     PLANNED_THERAPY_START("Terapia biologica pianificata ma non ancora iniziata"),
     SEVERE_IMMUNODEFICIENCY("Immunodeficienza severa o terapia immunosoppressiva associata"),
     CHRONIC_CARDIOPULMONARY_DISEASE("Patologia cronica cardio-polmonare"),
